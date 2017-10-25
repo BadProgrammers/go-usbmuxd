@@ -1,3 +1,5 @@
+// +build windows
+
 package transmission
 
 import (
@@ -5,17 +7,11 @@ import (
 )
 
 func Tunnel() (net.Conn, error) {
-	conn, err := net.Dial("unix", "/var/run/usbmuxd")
+	conn, err := net.Dial("tcp", "27015")
 	if err != nil {
 		return nil, err
 	}
 	return conn, nil
 }
-
-
-
-
-
-
 
 
