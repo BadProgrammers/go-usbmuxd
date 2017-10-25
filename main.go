@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"encoding/binary"
-	"bytes"
+	"github.com/SoumeshBanerjee/go-usbmuxd/transmission"
+	"io"
+	"time"
 )
 
 type header struct {
@@ -45,19 +47,37 @@ func main() {
 
 
 	req_buf := append(header_buffer, buf...)
-	fmt.Println(req_buf)
+
+
+	conn, err := transmission.Tunnel()
+	if err!=nil {
+		fmt.Println(err)
+	}
+
+	go reader(conn)
+
+	_, err = conn.Write(req_buf)
+
+	if err!=nil {
+		fmt.Println("Writing Error: ", err)
+	}
+
+	// run loop
+
+	for {
+		time.Sleep(1)
+	}
 
 }
 
 
-//func reader(r io.Reader) {
-//	buf := make([]byte, 1024)
-//	for {
-//		print("here")
-//		n, err := r.Read(buf[:])
-//		if err != nil {
-//			return
-//		}
-//		println("Client got:", string(buf[0:n]))
-//	}
-//}
+func reader(r io.Reader) {
+	buf := make([]byte, 1024)
+	for {
+		n, err := r.Read(buf[:])
+		if err != nil {
+			return
+		}
+		fmt.Println(string(buf[16:n]))
+	}
+}
