@@ -23,9 +23,9 @@ func main() {
     <key>MessageType</key>
     <string>Listen</string>
     <key>ClientVersionString</key>
-    <string>node-usbmux</string>
+    <string>1.0.0</string>
     <key>ProgName</key>
-    <string>node-usbmux</string>
+    <string>go-usbmuxd</string>
   </dict>
 </plist>`
 
