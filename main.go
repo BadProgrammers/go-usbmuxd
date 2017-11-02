@@ -1,18 +1,19 @@
 package main
 
 import (
-	"fmt"
 	"encoding/binary"
-	"github.com/SoumeshBanerjee/go-usbmuxd/transmission"
+	"fmt"
 	"io"
 	"time"
+
+	"./transmission"
 )
 
 type header struct {
-	len uint32
+	len     uint32
 	version uint32
 	request uint32
-	tag uint32
+	tag     uint32
 }
 
 func main() {
@@ -29,28 +30,21 @@ func main() {
   </dict>
 </plist>`
 
-
 	buf := []byte(str)
 
-	_ = header{len: uint32(len(buf)+16), version:1, request:8, tag:1}
+	_ = header{len: uint32(len(buf) + 16), version: 1, request: 8, tag: 1}
 
 	header_buffer := make([]byte, 16)
-
-
-
 
 	binary.LittleEndian.PutUint32(header_buffer, uint32(len(buf)+16))
 	header_buffer[4] = byte(1)
 	header_buffer[8] = byte(8)
 	header_buffer[12] = byte(1)
 
-
-
 	req_buf := append(header_buffer, buf...)
 
-
 	conn, err := transmission.Tunnel()
-	if err!=nil {
+	if err != nil {
 		fmt.Println(err)
 	}
 
@@ -58,7 +52,7 @@ func main() {
 
 	_, err = conn.Write(req_buf)
 
-	if err!=nil {
+	if err != nil {
 		fmt.Println("Writing Error: ", err)
 	}
 
@@ -69,7 +63,6 @@ func main() {
 	}
 
 }
-
 
 func reader(r io.Reader) {
 	buf := make([]byte, 1024)
