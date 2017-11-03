@@ -2,82 +2,41 @@ package main
 
 import (
 	"fmt"
-	"encoding/binary"
-	"github.com/SoumeshBanerjee/go-usbmuxd/transmission"
-	"io"
-	"time"
+	"github.com/SoumeshBanerjee/go-usbmuxd/USB"
+	"github.com/SoumeshBanerjee/go-usbmuxd/frames"
 )
 
-type header struct {
-	len uint32
-	version uint32
-	request uint32
-	tag uint32
-}
-
 func main() {
-	str := `<?xml version="1.0" encoding="UTF-8"?>
-<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
-<plist version="1.0">
-  <dict>
-    <key>MessageType</key>
-    <string>Listen</string>
-    <key>ClientVersionString</key>
-    <string>1.0.0</string>
-    <key>ProgName</key>
-    <string>go-usbmuxd</string>
-  </dict>
-</plist>`
 
+	// create a USB.Listen(USBDeviceDelegate) instance. Pass a delegate to resolve the attached and detached callbacks
+	// then on device added save ot to array/ map and send connect to a port with proper tag
+	listenConnection := USB.Listen(USBDeviceDelegate{})
+	defer listenConnection.Close()
 
-	buf := []byte(str)
-
-	_ = header{len: uint32(len(buf)+16), version:1, request:8, tag:1}
-
-	header_buffer := make([]byte, 16)
-
-
-
-
-	binary.LittleEndian.PutUint32(header_buffer, uint32(len(buf)+16))
-	header_buffer[4] = byte(1)
-	header_buffer[8] = byte(8)
-	header_buffer[12] = byte(1)
-
-
-
-	req_buf := append(header_buffer, buf...)
-
-
-	conn, err := transmission.Tunnel()
-	if err!=nil {
-		fmt.Println(err)
-	}
-
-	go reader(conn)
-
-	_, err = conn.Write(req_buf)
-
-	if err!=nil {
-		fmt.Println("Writing Error: ", err)
-	}
+	// connect to a random usb device, if Number == 0 then
 
 	// run loop
-
-	for {
-		time.Sleep(1)
-	}
-
+	select {}
 }
 
+func byteSwap(val int) int {
+	return ((val & 0xFF) << 8) | ((val >> 8) & 0xFF)
+}
 
-func reader(r io.Reader) {
-	buf := make([]byte, 1024)
-	for {
-		n, err := r.Read(buf[:])
-		if err != nil {
-			return
-		}
-		fmt.Println(string(buf[16:n]))
+// MARK: - USB Delegate Methods
+type USBDeviceDelegate struct{}
+
+func (usb USBDeviceDelegate) DeviceDidConnect(frame frames.USBDeviceAttachedDetachedFrame) {
+	// callback will arrive here for new plug in usb device
+	fmt.Println("DIDConnect : " + frame.MessageType)
+
+}
+func (usb USBDeviceDelegate) DeviceDidDisconnect(frame frames.USBDeviceAttachedDetachedFrame) {
+	// disconnect call will come here
+	fmt.Println("didDISConnect : " + frame.MessageType)
+}
+func (usb USBDeviceDelegate) DidReceiveError(err error, stringResponse string) {
+	if err != nil {
+		panic(err)
 	}
 }
