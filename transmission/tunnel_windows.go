@@ -6,12 +6,8 @@ import (
 	"net"
 )
 
-var connectionProtocol = "tcp"
-var connectionSocket = "127.0.0.1:27015"
-
-// Tunnel USB function for Windows family
 func Tunnel() (net.Conn, error) {
-	conn, err := net.Dial(connectionProtocol, connectionSocket)
+	conn, err := net.Dial("tcp", "127.0.0.1:27015")
 	if err != nil {
 		return nil, err
 	}
