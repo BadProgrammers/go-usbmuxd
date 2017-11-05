@@ -4,9 +4,10 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/SoumeshBanerjee/go-usbmuxd/frames"
-	"howett.net/plist"
 	"net"
+
+	"../frames"
+	"howett.net/plist"
 )
 
 func Listen(conn net.Conn, delegate USBDeviceDelegate) net.Conn {

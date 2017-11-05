@@ -4,11 +4,12 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/SoumeshBanerjee/go-usbmuxd/frames"
-	"howett.net/plist"
 	"io"
+	"log"
 	"net"
-    "log"
+
+	"../frames"
+	"howett.net/plist"
 )
 
 type (
@@ -49,7 +50,7 @@ func (device ConnectedDevices) SendData(data []byte, messageTagType uint32) {
 	if device.Connection != nil {
 		_, err := device.Connection.Write(append(headerBuffer, data...))
 		if err != nil {
-		    log.Println(err.Error())
+			log.Println(err.Error())
 		}
 	}
 }
