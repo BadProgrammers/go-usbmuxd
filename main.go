@@ -1,12 +1,13 @@
 package main
 
 import (
-	"github.com/SoumeshBanerjee/go-usbmuxd/USB"
-	"github.com/SoumeshBanerjee/go-usbmuxd/frames"
-	"github.com/SoumeshBanerjee/go-usbmuxd/transmission"
 	"io"
 	"log"
 	"os"
+
+	"./USB"
+	"./frames"
+	"./transmission"
 )
 
 // some global vars
