@@ -1,25 +1,50 @@
 package main
 
 import (
-	"fmt"
 	"github.com/SoumeshBanerjee/go-usbmuxd/USB"
 	"github.com/SoumeshBanerjee/go-usbmuxd/frames"
-    "encoding/binary"
+	"github.com/SoumeshBanerjee/go-usbmuxd/transmission"
+	"io"
+	"log"
+	"os"
 )
 
+// some global vars
 var connectHandle USB.ConnectedDevices
-var port = 2345
+var port = 29173
+var pluggedUSBDevices map[int]frames.USBDeviceAttachedDetachedFrame
+var connectedUSB int // only stores the device id
+var scanningInstance USB.Scan
+var self USBDeviceDelegate
+
 func main() {
- 
+	// inti section
+	connectedUSB = -1
+	pluggedUSBDevices = map[int]frames.USBDeviceAttachedDetachedFrame{}
+	scanningInstance = USB.Scan{}
+	self = USBDeviceDelegate{}
+
+	// logger
+	logFile, err := os.OpenFile("kusb_ios.log", os.O_CREATE|os.O_APPEND|os.O_RDWR, 0666)
+	if err != nil {
+		log.Println(err)
+	}
+	defer logFile.Close()
+	mw := io.MultiWriter(os.Stdout, logFile)
+	log.SetOutput(mw)
+
 	// create a USB.Listen(USBDeviceDelegate) instance. Pass a delegate to resolve the attached and detached callbacks
 	// then on device added save ot to array/ map and send connect to a port with proper tag
-	self := USBDeviceDelegate{}
-	listenConnection := USB.Listen(self)
+	listenConnection := USB.Listen(transmission.Tunnel(), self)
 	defer listenConnection.Close()
 
 	// connect to a random usb device, if Number == 0 then
-	connectHandle = USB.ConnectedDevices{Delegate: self}
-	
+	connectHandle = USB.ConnectedDevices{Delegate: self, Connection: transmission.Tunnel()}
+	defer connectHandle.Connection.Close()
+
+	// scan defer
+	defer scanningInstance.Stop()
+
 	// run loop
 	select {}
 }
@@ -28,52 +53,64 @@ func main() {
 type USBDeviceDelegate struct{}
 
 func (usb USBDeviceDelegate) USBDeviceDidPlug(frame frames.USBDeviceAttachedDetachedFrame) {
-	// callback will arrive here for new plug in usb device
-	fmt.Println("DIDConnect : " + frame.MessageType)
-	connectHandle.Connect(frame, port)
-
+	// usb has been plugged DO: startScanning
+	log.Printf("[USB-INFO] : Device Plugged %s ID: %d\n", frame.Properties.SerialNumber, frame.DeviceID)
+	pluggedUSBDevices[frame.DeviceID] = frame
+	scanningInstance.Start(&connectHandle, frame, port)
 }
 func (usb USBDeviceDelegate) USBDeviceDidUnPlug(frame frames.USBDeviceAttachedDetachedFrame) {
-	// disconnect call will come here
-	fmt.Println("didDISConnect : " + frame.MessageType)
+	// usb has been unplugged
+	// stop scan
+	log.Printf("[USB-INFO] : Device UnPlugged %s ID: %d\n", pluggedUSBDevices[frame.DeviceID].Properties.SerialNumber, frame.DeviceID)
+	delete(pluggedUSBDevices, frame.DeviceID)
+	scanningInstance.Stop()
 }
 func (usb USBDeviceDelegate) USBDidReceiveErrorWhilePluggingOrUnplugging(err error, stringResponse string) {
-	if err != nil {
-		panic(err)
+	// plug or unplug error
+	// stop scan
+	if stringResponse != "" {
+		//some unresolved message came
+		//TODO - Implement some resolver to understand message received
 	}
+	log.Println("[USB-EM-1] : Some error encountered wile pluging and unpluging. ", err.Error())
+	scanningInstance.Stop()
 }
 func (usb USBDeviceDelegate) USBDeviceDidSuccessfullyConnect(device USB.ConnectedDevices, deviceID int, toPort int) {
-    fmt.Println("Device Connected Successfully")
-    for i:=0; i<=10; i++ {
-        if device.Connection != nil {
-            data := helper("hi")
-            _, err := device.Connection.Write(data)
-            if err != nil {
-                fmt.Println(err.Error())
-            }
-        }
-    }
+	// successfully connected to the port mentioned
+	// stop the scan
+	connectedUSB = deviceID
+	scanningInstance.Stop()
 }
 func (usb USBDeviceDelegate) USBDeviceDidFailToConnect(device USB.ConnectedDevices, deviceID int, toPort int, err error) {
-    fmt.Println("Failed to connect" + err.Error())
+	// error while communication in the socket
+	// start scan
+	connectedUSB = -1
+	pluggedDeviceID := getFirstPluggedDeviceId()
+	if pluggedDeviceID != -1 {
+		scanningInstance.Start(&connectHandle, pluggedUSBDevices[pluggedDeviceID], port)
+	}
+
 }
-func (usb USBDeviceDelegate) USBDeviceDidReceiveData(device USB.ConnectedDevices, deviceID int, data []byte) {
-    fmt.Println(data)
+func (usb USBDeviceDelegate) USBDeviceDidReceiveData(device USB.ConnectedDevices, deviceID int, messageTAG uint32, data []byte) {
+	// received data from the device
+	log.Println(string(data))
+	//device.SendData(data[20:], 106)
 }
-func (usb USBDeviceDelegate) USBDeviceDidDisconnect(devices USB.ConnectedDevices, deviceID int, toPort int)  {
-    fmt.Println("Socket Disconnect")
+func (usb USBDeviceDelegate) USBDeviceDidDisconnect(devices USB.ConnectedDevices, deviceID int, toPort int) {
+	// socket disconnect
+	// start scan
+	connectedUSB = -1
+	pluggedDeviceID := getFirstPluggedDeviceId()
+	if pluggedDeviceID != -1 {
+		scanningInstance.Start(&connectHandle, pluggedUSBDevices[pluggedDeviceID], port)
+	}
 }
 
-func helper(string string) []byte {
-    bodyBuffer := []byte(string)
-    
-    headerBuffer := make([]byte, 20)
-    
-    binary.BigEndian.PutUint32(headerBuffer[:4], 1)
-    binary.BigEndian.PutUint32(headerBuffer[4:8], 101)
-    binary.BigEndian.PutUint32(headerBuffer[8:12], 0)
-    binary.BigEndian.PutUint32(headerBuffer[12:16], uint32(len(bodyBuffer)+4))
-    binary.BigEndian.PutUint32(headerBuffer[16:], uint32(len(bodyBuffer)))
-    
-    return append(headerBuffer, bodyBuffer...)
+// MARK - helper functions here
+func getFirstPluggedDeviceId() int {
+	var deviceID int = -1
+	for deviceID, _ = range pluggedUSBDevices {
+		break
+	}
+	return deviceID
 }

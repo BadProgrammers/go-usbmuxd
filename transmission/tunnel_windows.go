@@ -1,17 +1,14 @@
 // +build windows
-
 package transmission
 
 import (
 	"net"
 )
 
-func Tunnel() (net.Conn, error) {
-	conn, err := net.Dial("tcp", "127.0.0.1:27015")
+func Tunnel() net.Conn {
+	conn, err := net.Dial("tcp", "localhost:27015")
 	if err != nil {
-		return nil, err
+		log.Println("[TUNNEL-ERROR] : Unable to connect to port.")
 	}
-	return conn, nil
+	return conn
 }
-
-

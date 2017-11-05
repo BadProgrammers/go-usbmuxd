@@ -2,21 +2,14 @@
 package transmission
 
 import (
+	"log"
 	"net"
 )
 
-func Tunnel() (net.Conn, error) {
+func Tunnel() net.Conn {
 	conn, err := net.Dial("unix", "/var/run/usbmuxd")
 	if err != nil {
-		return nil, err
+		log.Println("[TUNNEL-ERROR] : Unable to connect to port.")
 	}
-	return conn, nil
+	return conn
 }
-
-
-
-
-
-
-
-
