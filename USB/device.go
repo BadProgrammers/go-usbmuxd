@@ -1,7 +1,7 @@
 package USB
 
 import (
-	"../frames"
+	"github.com/SoumeshBanerjee/go-usbmuxd/frames"
 )
 
 type (
