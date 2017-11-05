@@ -5,12 +5,10 @@ import (
 )
 
 type (
-	// Delegate methods for USBDevice, if any ios Device is connected or disconnected
+	// Delegate methods for USBDevice, if any ios Device is plugged or unplugged
 	USBDeviceDelegate interface {
-		DeviceDidConnect(frames.USBDeviceAttachedDetachedFrame)
-		DeviceDidDisconnect(frames.USBDeviceAttachedDetachedFrame)
-		DidReceiveError(error, string)
+		USBDeviceDidPlug(frames.USBDeviceAttachedDetachedFrame)
+		USBDeviceDidUnPlug(frames.USBDeviceAttachedDetachedFrame)
+		USBDidReceiveErrorWhilePluggingOrUnplugging(error, string)
 	}
 )
-
-var connectedDevices map[uint16]frames.USBDeviceAttachedDetachedFrame
