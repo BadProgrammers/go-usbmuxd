@@ -37,18 +37,18 @@ func frameParser(conn net.Conn, delegate USBDeviceDelegate) {
 		decoder.Decode(&data)
 
 		if data.MessageType == "Result" && data.Number != 0 {
-			panic("Some error encountered while communication via USB, try again!")
+            delegate.USBDidReceiveErrorWhilePluggingOrUnplugging(errors.New("[USB-ERROR-LISTEN-RESP-1] : Illegal response received"), string(chunk[16:n]))
 		}
 		if data.MessageType != "Result" {
 			var data frames.USBDeviceAttachedDetachedFrame
 			decoder = plist.NewDecoder(bytes.NewReader(chunk[16:n]))
 			decoder.Decode(&data)
 			if data.MessageType == "Attached" {
-				delegate.DeviceDidConnect(data)
+				delegate.USBDeviceDidPlug(data)
 			} else if data.MessageType == "Detached" {
-				delegate.DeviceDidDisconnect(data)
+				delegate.USBDeviceDidUnPlug(data)
 			} else {
-				delegate.DidReceiveError(errors.New("[USB-ERROR-LISTEN-2] : Unable to parse the response"), string(chunk[16:n]))
+				delegate.USBDidReceiveErrorWhilePluggingOrUnplugging(errors.New("[USB-ERROR-LISTEN-2] : Unable to parse the response"), string(chunk[16:n]))
 			}
 		}
 	}
