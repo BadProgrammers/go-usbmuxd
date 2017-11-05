@@ -4,13 +4,14 @@ import (
 	"bytes"
 	"encoding/binary"
 	"errors"
-	"github.com/SoumeshBanerjee/go-usbmuxd/frames"
-	"github.com/SoumeshBanerjee/go-usbmuxd/transmission"
-	"howett.net/plist"
 	"net"
+
+	"../frames"
+	"../transmission"
+	"howett.net/plist"
 )
 
-func Listen(delegate USBDeviceDelegate) net.Conn {
+func Listen(delegate DeviceDelegate) net.Conn {
 	// start a tunnel here, and then send the listen frame to that connected socket
 	conn, err := transmission.Tunnel()
 	if err != nil {
@@ -24,7 +25,7 @@ func Listen(delegate USBDeviceDelegate) net.Conn {
 	return conn
 }
 
-func frameParser(conn net.Conn, delegate USBDeviceDelegate) {
+func frameParser(conn net.Conn, delegate DeviceDelegate) {
 	chunk := make([]byte, 2500000)
 	for {
 		n, err := conn.Read(chunk)
@@ -37,7 +38,7 @@ func frameParser(conn net.Conn, delegate USBDeviceDelegate) {
 		decoder.Decode(&data)
 
 		if data.MessageType == "Result" && data.Number != 0 {
-            delegate.USBDidReceiveErrorWhilePluggingOrUnplugging(errors.New("[USB-ERROR-LISTEN-RESP-1] : Illegal response received"), string(chunk[16:n]))
+			delegate.USBDidReceiveErrorWhilePluggingOrUnplugging(errors.New("[USB-ERROR-LISTEN-RESP-1] : Illegal response received"), string(chunk[16:n]))
 		}
 		if data.MessageType != "Result" {
 			var data frames.USBDeviceAttachedDetachedFrame

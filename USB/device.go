@@ -1,12 +1,12 @@
 package USB
 
 import (
-	"github.com/SoumeshBanerjee/go-usbmuxd/frames"
+	"../frames"
 )
 
 type (
-	// Delegate methods for USBDevice, if any ios Device is plugged or unplugged
-	USBDeviceDelegate interface {
+	// DeviceDelegate defines Delegate methods for USBDevice, if any ios Device is plugged or unplugged
+	DeviceDelegate interface {
 		USBDeviceDidPlug(frames.USBDeviceAttachedDetachedFrame)
 		USBDeviceDidUnPlug(frames.USBDeviceAttachedDetachedFrame)
 		USBDidReceiveErrorWhilePluggingOrUnplugging(error, string)
