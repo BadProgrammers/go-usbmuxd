@@ -50,15 +50,18 @@ func main() {
 	select {}
 }
 
-// MARK: - USB Delegate Methods
+// USBDeviceDelegate - USB Delegate Methods
 type USBDeviceDelegate struct{}
 
+// USBDeviceDidPlug - device plugged callback
 func (usb USBDeviceDelegate) USBDeviceDidPlug(frame frames.USBDeviceAttachedDetachedFrame) {
 	// usb has been plugged DO: startScanning
 	log.Printf("[USB-INFO] : Device Plugged %s ID: %d\n", frame.Properties.SerialNumber, frame.DeviceID)
 	pluggedUSBDevices[frame.DeviceID] = frame
 	scanningInstance.Start(&connectHandle, frame, port)
 }
+
+// USBDeviceDidUnPlug - device unplugged callback
 func (usb USBDeviceDelegate) USBDeviceDidUnPlug(frame frames.USBDeviceAttachedDetachedFrame) {
 	// usb has been unplugged
 	// stop scan
@@ -66,6 +69,8 @@ func (usb USBDeviceDelegate) USBDeviceDidUnPlug(frame frames.USBDeviceAttachedDe
 	delete(pluggedUSBDevices, frame.DeviceID)
 	scanningInstance.Stop()
 }
+
+// USBDidReceiveErrorWhilePluggingOrUnplugging - device plugging/unplugging callback
 func (usb USBDeviceDelegate) USBDidReceiveErrorWhilePluggingOrUnplugging(err error, stringResponse string) {
 	// plug or unplug error
 	// stop scan
@@ -76,12 +81,16 @@ func (usb USBDeviceDelegate) USBDidReceiveErrorWhilePluggingOrUnplugging(err err
 	log.Println("[USB-EM-1] : Some error encountered wile pluging and unpluging. ", err.Error())
 	scanningInstance.Stop()
 }
+
+// USBDeviceDidSuccessfullyConnect - device successful connection callback
 func (usb USBDeviceDelegate) USBDeviceDidSuccessfullyConnect(device USB.ConnectedDevices, deviceID int, toPort int) {
 	// successfully connected to the port mentioned
 	// stop the scan
 	connectedUSB = deviceID
 	scanningInstance.Stop()
 }
+
+// USBDeviceDidFailToConnect - device connection failure callback
 func (usb USBDeviceDelegate) USBDeviceDidFailToConnect(device USB.ConnectedDevices, deviceID int, toPort int, err error) {
 	// error while communication in the socket
 	// start scan
@@ -92,11 +101,15 @@ func (usb USBDeviceDelegate) USBDeviceDidFailToConnect(device USB.ConnectedDevic
 	}
 
 }
+
+// USBDeviceDidReceiveData - data received callback
 func (usb USBDeviceDelegate) USBDeviceDidReceiveData(device USB.ConnectedDevices, deviceID int, messageTAG uint32, data []byte) {
 	// received data from the device
 	log.Println(string(data))
 	//device.SendData(data[20:], 106)
 }
+
+// USBDeviceDidDisconnect - device disconnect callback
 func (usb USBDeviceDelegate) USBDeviceDidDisconnect(devices USB.ConnectedDevices, deviceID int, toPort int) {
 	// socket disconnect
 	// start scan
@@ -108,6 +121,7 @@ func (usb USBDeviceDelegate) USBDeviceDidDisconnect(devices USB.ConnectedDevices
 }
 
 // MARK - helper functions here
+// Needs restructuring, removal or other implementation
 func getFirstPluggedDeviceId() int {
 	var deviceID int = -1
 	for deviceID, _ = range pluggedUSBDevices {
