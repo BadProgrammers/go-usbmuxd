@@ -38,15 +38,13 @@ func (device ConnectedDevices) Connect(conn net.Conn, frame frames.USBDeviceAtta
 
 func (device ConnectedDevices) SendData(data []byte, messageTagType uint32) {
 	// create a 20byte standard header that's used by peertalk to parse tag and other info
-	headerBuffer := make([]byte, 20)
+	headerBuffer := make([]byte, 16)
 
 	// preparing the header
-	binary.BigEndian.PutUint32(headerBuffer[:4], 1)
-	binary.BigEndian.PutUint32(headerBuffer[4:8], messageTagType)
-	binary.BigEndian.PutUint32(headerBuffer[8:12], 0)
-	binary.BigEndian.PutUint32(headerBuffer[12:16], uint32(len(data)+4))
-	binary.BigEndian.PutUint32(headerBuffer[16:], uint32(len(data)))
-
+	binary.BigEndian.PutUint32(headerBuffer[:4], 1)                    // version
+	binary.BigEndian.PutUint32(headerBuffer[4:8], messageTagType)      //type
+	binary.BigEndian.PutUint32(headerBuffer[8:12], 0)                  //tag
+	binary.BigEndian.PutUint32(headerBuffer[12:16], uint32(len(data))) //payloadSize
 	if device.Connection != nil {
 		_, err := device.Connection.Write(append(headerBuffer, data...))
 		if err != nil {
@@ -118,12 +116,11 @@ func connectFrameParser(conn net.Conn, deviceID int, toPort int, device Connecte
 		if data.MessageType != "Result" {
 			// parse the TAG and other relevant header info
 			headerBuffer := chunk[:16]
-			//log.Println(binary.BigEndian.Uint32(headerBuffer[0:4]))
-			//log.Println(binary.BigEndian.Uint32(headerBuffer[4:8]))
-			//log.Println(binary.BigEndian.Uint32(headerBuffer[8:12]))
-			//log.Println(binary.BigEndian.Uint32(headerBuffer[12:16]))
-			//log.Println(binary.BigEndian.Uint32(headerBuffer[16:20]))
-			device.Delegate.USBDeviceDidReceiveData(device, deviceID, binary.BigEndian.Uint32(headerBuffer[4:8]), chunk[:n])
+			// log.Println(binary.BigEndian.Uint32(headerBuffer[0:4]))   //version
+			// log.Println(binary.BigEndian.Uint32(headerBuffer[4:8]))   // type
+			// log.Println(binary.BigEndian.Uint32(headerBuffer[8:12]))  //tag
+			// log.Println(binary.BigEndian.Uint32(headerBuffer[12:16])) //payloadSize
+			device.Delegate.USBDeviceDidReceiveData(device, deviceID, binary.BigEndian.Uint32(headerBuffer[4:8]), chunk[16:n])
 		}
 	}
 }
